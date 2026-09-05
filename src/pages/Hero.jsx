@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { slides } from "../data/HomePageData";
-import Introdcution from "./Introdcution";
 
 function Hero() {
   const [currentSlide, setCurrentSlide] = useState(0);
