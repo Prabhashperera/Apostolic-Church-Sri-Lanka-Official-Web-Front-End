@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Search } from 'lucide-react';
-import churches from '../data/churchData';
+import churches from '../data/HomeData';
 import ChurchCard from '../components/ChurchCard';
 
 export default function Directory() {
