@@ -1,5 +1,6 @@
 import Hero from "./Hero";
 import Introduction from "./Introdcution";
+import Leader from "./Leader";
 import Regions from "./Regions";
 
 export default function Home() {
@@ -10,6 +11,7 @@ export default function Home() {
         <Hero />
         <Introduction />
         <Regions />
+        <Leader />
       </div>
     </div>
   );

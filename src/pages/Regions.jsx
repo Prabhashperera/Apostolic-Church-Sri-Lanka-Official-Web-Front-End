@@ -4,54 +4,69 @@ import { churchRegions } from "../data/ChurchRegionData";
 
 function Regions() {
   return (
-    <section className="w-full bg-white px-5 py-16 sm:px-8 sm:py-20 md:px-12 lg:px-20 lg:py-24">
-
+    <section className="w-full bg-[#f4ff8f] px-5 py-20 sm:px-8 sm:py-24 md:px-12 lg:px-20 lg:py-28">
       <div className="mx-auto max-w-7xl">
 
-        {/* Heading */}
-        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+        {/* Header */}
+        <div className="mx-auto max-w-3xl text-center">
 
-          <div className="max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#1d4ed8]">
-              Our Church Network
-            </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#1d4ed8]">
+            Our Church Network
+          </p>
 
-            <h2 className="mt-3 text-3xl font-extrabold leading-tight tracking-tight text-[#0c1322] sm:text-4xl md:text-5xl">
-              Churches Across Sri Lanka
-            </h2>
+          <h2 className="mt-4 text-3xl font-extrabold leading-tight tracking-tight text-[#0c1322] sm:text-4xl md:text-5xl lg:text-6xl">
+            Churches Across Sri Lanka
+          </h2>
 
-            <p className="mt-4 max-w-xl text-sm font-light leading-relaxed text-gray-500 sm:text-base">
-              A growing family of believers serving communities across
-              different regions of Sri Lanka.
-            </p>
-          </div>
-
-          {/* Total */}
-          <div className="flex items-center gap-4 md:text-right">
-            <div>
-              <p className="text-4xl font-extrabold leading-none text-[#0c1322] sm:text-5xl">
-                86
-              </p>
-
-              <p className="mt-1 text-xs uppercase tracking-[0.18em] text-gray-400">
-                Churches
-              </p>
-            </div>
-          </div>
+          <p className="mx-auto mt-5 max-w-2xl text-sm font-light leading-relaxed text-gray-500 sm:text-base md:text-lg">
+            A growing family of believers, united in faith, worship, and
+            service across communities throughout Sri Lanka.
+          </p>
 
         </div>
 
-        {/* Cards */}
-        <div className="mt-10 flex gap-5 overflow-x-auto pb-4 scrollbar-hide md:grid md:grid-cols-3 md:overflow-visible">
+        {/* Total Churches */}
+        <div className="mt-10 flex justify-center">
+          <div className="flex items-center gap-4 rounded-full border border-gray-200 bg-white px-6 py-3 shadow-sm">
 
-          {churchRegions.map((region) => (
-            <RegionCard
-              key={region.name}
-              name={region.name}
-              churches={region.churches}
-              image={region.image}
-            />
-          ))}
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0c1322]">
+              <span className="text-sm font-bold text-white">
+                86
+              </span>
+            </div>
+
+            <div className="text-left">
+              <p className="text-sm font-bold leading-none text-[#0c1322]">
+                Churches
+              </p>
+
+              <p className="mt-1 text-xs font-light text-gray-400">
+                Across our regions
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Region Cards */}
+        <div className="mt-14">
+
+          <div className="flex gap-5 overflow-x-auto pb-6 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:pb-0">
+
+            {churchRegions.map((region) => (
+              <div
+                key={region.name}
+                className="w-[82vw] shrink-0 snap-center sm:w-[60vw] md:w-auto"
+              >
+                <RegionCard
+                  name={region.name}
+                  churches={region.churches}
+                  image={region.image}
+                />
+              </div>
+            ))}
+
+          </div>
 
         </div>
 
