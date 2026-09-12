@@ -1,3 +1,4 @@
+import Footer from "./Footer";
 import Hero from "./Hero";
 import Introduction from "./Introdcution";
 import Leader from "./Leader";
@@ -12,6 +13,7 @@ export default function Home() {
         <Introduction />
         <Regions />
         <Leader />
+        <Footer />
       </div>
     </div>
   );
