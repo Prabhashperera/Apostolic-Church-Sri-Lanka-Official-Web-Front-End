@@ -61,5 +61,5 @@ export const introHeading = [
 export const introParagraphs = [
   `Every congregation under this ministry shares one calling: to make the Gospel real in everyday life. From our very first gathering to the network of churches we serve today, the mission has stayed the same — welcome anyone who walks through the door, and help them grow in faith, character, and purpose.`,
   `Our services are held in multiple languages so that no one is left out of worship because of where they were born or what they speak at home. Alongside Sunday services, we run outreach programs, youth mentorship, and community support initiatives that carry faith into daily life, not just onto a stage.`,
-  `Whether you're visiting for the first time or you've been part of this family for years, there's a place for you here — in worship, in service, and in the community we're building together.`,
+  `Whether you're visiting for the first time or you've been part of this family for years, there's a place for you here - in worship, in service, and in the community we're building together.`,
 ];

@@ -1,5 +1,6 @@
 import Hero from "./Hero";
 import Introduction from "./Introdcution";
+import Regions from "./Regions";
 
 export default function Home() {
   return (
@@ -8,6 +9,7 @@ export default function Home() {
       <div className="">
         <Hero />
         <Introduction />
+        <Regions />
       </div>
     </div>
   );
