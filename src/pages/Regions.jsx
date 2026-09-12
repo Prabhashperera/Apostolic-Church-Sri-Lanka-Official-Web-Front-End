@@ -56,7 +56,7 @@ function Regions() {
             {churchRegions.map((region) => (
               <div
                 key={region.name}
-                className="w-[82vw] shrink-0 snap-center sm:w-[60vw] md:w-auto"
+                className="w-[82vw] shrink-0 snap-center sm:w-[60vw] md:w-auto cursor-pointer"
               >
                 <RegionCard
                   name={region.name}

@@ -30,7 +30,7 @@ function Leader() {
   return (
     <section
       ref={sectionRef}
-      className="relative w-full overflow-hidden bg-gradient-to-b from-[#fcfcfc] to-[#dcecfd] px-5 py-20 sm:px-8 sm:py-24 md:px-12 lg:px-20 lg:py-28"
+      className="relative w-full overflow-hidden bg-gradient-to-b from-[#fcfcfc] to-[#ffffff] px-5 py-20 sm:px-8 sm:py-24 md:px-12 lg:px-20 lg:py-28 cursor-pointer"
     >
       <style>{`
         .leader-blob {
