@@ -1,5 +1,10 @@
-import React, { useMemo, useState } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import React, { useEffect, useMemo, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
+import { geoMercator } from "d3-geo";
+// ^ `d3-geo` is already a dependency of react-simple-maps, but add it to your
+//   own package.json too (`npm install d3-geo`) so it doesn't rely on npm's
+//   hoisting to be resolvable here.
 import {
   Search,
   MapPin,
@@ -16,15 +21,41 @@ import {
 } from "lucide-react";
 import { regions, areas, churches } from "../data/ChurchesData";
 // ^ adjust this path to wherever ChurchesData.js actually lives in your project
+import sriLankaGeo from "../data/sriLanka.geo.json";
+// ^ save the sriLanka.geo.json file next to ChurchesData.js (or wherever you
+//   keep static data) and adjust this path to match. This is Sri Lanka's own
+//   feature pulled out of the `world-atlas` dataset, bundled with the app —
+//   no runtime fetch to a CDN, so it can't fail silently on a blocked or
+//   offline network the way a live `fetch()` to a CDN can.
+//
+// Dependency: `npm install react-simple-maps`
+// (it wraps d3-geo; no separate d3 install is needed)
 
-// Presentation-only metadata: colour, icon and an approximate point on the
-// island silhouette for each region. Positions follow real geography
-// (Jaffna = far north tip, Wennappuwa/Puttalam = north-west coast,
-// Colombo = south-west coast) but are illustrative, not surveyed.
+// Presentation-only metadata: colour, icon, a short label, and the real
+// [longitude, latitude] of a representative town for each region, so the
+// marker sits on its actual place on the map rather than an eyeballed point.
 const REGION_META = {
-  "Colombo Region": { color: "#13233B", tint: "#EEF1F6", icon: Landmark, hub: { x: 100, y: 320 } },
-  "Wennappuwa Region": { color: "#0F7A6B", tint: "#EAF5F2", icon: Waves, hub: { x: 92, y: 205 } },
-  "Jaffna Region": { color: "#B15E33", tint: "#FBEEE6", icon: Compass, hub: { x: 128, y: 78 } },
+  "Colombo Region": {
+    color: "#13233B",
+    tint: "#EEF1F6",
+    icon: Landmark,
+    shortName: "Colombo",
+    coordinates: [79.8612, 6.9271], // Colombo
+  },
+  "Wennappuwa Region": {
+    color: "#0F7A6B",
+    tint: "#EAF5F2",
+    icon: Waves,
+    shortName: "Wennappuwa",
+    coordinates: [79.8833, 7.3667], // Wennappuwa
+  },
+  "Jaffna Region": {
+    color: "#B15E33",
+    tint: "#FBEEE6",
+    icon: Compass,
+    shortName: "Jaffna",
+    coordinates: [80.0255, 9.6615], // Jaffna
+  },
 };
 const BEACON = "#E8A33D";
 const QUICK_CITIES = ["Colombo", "Negombo", "Kandy", "Jaffna", "Trincomalee", "Vavuniya"];
@@ -36,19 +67,52 @@ function mapsHref(query) {
   return `https://maps.google.com/?q=${encodeURIComponent(query)}`;
 }
 function hubRadius(count) {
-  return 9 + Math.sqrt(count) * 1.9;
+  return 5 + Math.sqrt(count) * 1.1;
 }
 
-// A hand-tuned but recognisable island silhouette: a westward peninsula bulge
-// at the top (Jaffna), a wide mid-section, and a taper to a southern point
-// (Dondra Head), with a shallow indent on the east coast near Trincomalee.
-const ISLAND_PATH =
-  "M140,14 C150,14 158,22 152,34 C145,46 118,40 100,32 C85,26 78,40 75,56 " +
-  "C70,72 72,80 70,92 C55,112 58,150 65,180 C68,210 70,236 75,262 " +
-  "C79,290 86,320 96,346 C101,366 106,386 111,400 C121,415 136,428 150,430 " +
-  "C165,428 180,420 190,414 C200,405 208,380 210,350 C212,320 214,290 215,260 " +
-  "C214,230 208,200 200,170 C195,145 193,120 190,100 C185,75 178,50 165,30 " +
-  "C158,20 150,14 140,14 Z";
+// The map's own coordinate space — must match the width/height passed to
+// ComposableMap below.
+const MAP_WIDTH = 280;
+const MAP_HEIGHT = 420;
+const MAP_PADDING = 14;
+
+// Rather than guessing a `scale`/`center` for geoMercator (easy to get
+// wrong by 2-3x, which pushes the whole island outside the visible
+// viewBox), fit the projection to Sri Lanka's actual bounding geometry so
+// it reliably lands inside the frame.
+//
+// Important: this must be the *built* d3 projection object itself, computed
+// once here — not a function that builds and returns one when called.
+// react-simple-maps checks `typeof projection === "function"` and, if so,
+// uses that value directly as the projection (calling it with [lng, lat] to
+// get back [x, y]). A factory function is itself a function, so it passes
+// that check and gets called with coordinates instead of being invoked to
+// produce a projection — which returns the wrong kind of value entirely and
+// crashes when <Marker> tries to destructure the result as [x, y].
+const sriLankaProjection = geoMercator().fitExtent(
+  [
+    [MAP_PADDING, MAP_PADDING],
+    [MAP_WIDTH - MAP_PADDING, MAP_HEIGHT - MAP_PADDING],
+  ],
+  sriLankaGeo
+);
+
+// Hover doesn't exist on a touchscreen, so a tooltip that only appears on
+// mouseenter is simply invisible on phones. This detects a coarse/no-hover
+// pointer so the map can show its labels up front there instead of gating
+// them behind a hover that will never fire.
+function useIsCoarsePointer() {
+  const [isCoarse, setIsCoarse] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(hover: none), (pointer: coarse)");
+    setIsCoarse(mq.matches);
+    const handler = (e) => setIsCoarse(e.matches);
+    mq.addEventListener?.("change", handler);
+    return () => mq.removeEventListener?.("change", handler);
+  }, []);
+  return isCoarse;
+}
 
 function buildGrouped(list) {
   return regions
@@ -200,6 +264,7 @@ export default function Churches() {
 }
 
 function HomeHero({ query, setQuery, activeHub, setActiveHub, onSelectRegion, reduceMotion }) {
+  const isTouch = useIsCoarsePointer();
   return (
     <section className="relative overflow-hidden bg-[#0E1B2E]">
       <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-6 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-6 lg:px-8 lg:py-20">
@@ -265,66 +330,81 @@ function HomeHero({ query, setQuery, activeHub, setActiveHub, onSelectRegion, re
           </motion.div>
         </div>
 
-        {/* Beacon map */}
+        {/* Beacon map — a real Sri Lanka outline, not a drawn approximation */}
         <div className="relative mx-auto w-full max-w-[280px] lg:max-w-none">
-          <svg viewBox="0 0 300 450" className="mx-auto h-[340px] w-auto lg:h-[400px]" aria-hidden="true">
-            <path d={ISLAND_PATH} fill="#16273F" stroke="#2C4468" strokeWidth="2" />
+          <ComposableMap
+            projection={sriLankaProjection}
+            width={MAP_WIDTH}
+            height={MAP_HEIGHT}
+            style={{ width: "100%", height: "auto" }}
+            className="mx-auto lg:h-[400px]"
+          >
+            <Geographies geography={sriLankaGeo}>
+              {({ geographies }) =>
+                geographies.map((geo) => (
+                  <Geography
+                    key={geo.rsmKey}
+                    geography={geo}
+                    fill="#16273F"
+                    stroke="#2C4468"
+                    strokeWidth={0.7}
+                    style={{
+                      default: { outline: "none" },
+                      hover: { outline: "none", fill: "#1B2E4A" },
+                      pressed: { outline: "none" },
+                    }}
+                  />
+                ))
+              }
+            </Geographies>
+
             {regions.map((region) => {
               const meta = REGION_META[region.name];
               if (!meta) return null;
               const r = hubRadius(region.churchCount);
               const isActive = activeHub === region.name;
+              // On a phone there is no hover, so the label is always shown
+              // instead of waiting for a mouseenter that will never come.
+              const showLabel = isTouch || isActive;
               return (
-                <g
+                <Marker
                   key={region.name}
-                  className="cursor-pointer"
-                  onMouseEnter={() => setActiveHub(region.name)}
-                  onMouseLeave={() => setActiveHub((h) => (h === region.name ? null : h))}
+                  coordinates={meta.coordinates}
                   onClick={() => onSelectRegion(region.name)}
+                  onMouseEnter={() => !isTouch && setActiveHub(region.name)}
+                  onMouseLeave={() => !isTouch && setActiveHub((h) => (h === region.name ? null : h))}
+                  style={{ default: { cursor: "pointer" } }}
                 >
                   {!reduceMotion && (
                     <motion.circle
-                      cx={meta.hub.x}
-                      cy={meta.hub.y}
                       r={r}
                       fill={BEACON}
                       initial={{ opacity: 0.45, scale: 1 }}
-                      animate={{ opacity: [0.4, 0], scale: [1, 1.9] }}
+                      animate={{ opacity: [0.4, 0], scale: [1, 2.1] }}
                       transition={{ duration: 2.4, repeat: Infinity, ease: "easeOut" }}
-                      style={{ transformOrigin: `${meta.hub.x}px ${meta.hub.y}px` }}
                     />
                   )}
-                  <circle cx={meta.hub.x} cy={meta.hub.y} r={r} fill={BEACON} opacity={isActive ? 1 : 0.9} />
-                  <circle cx={meta.hub.x} cy={meta.hub.y} r={r * 0.4} fill="#0E1B2E" opacity={0.85} />
-                </g>
+                  <circle r={r} fill={BEACON} opacity={isActive || isTouch ? 1 : 0.9} />
+                  <circle r={r * 0.4} fill="#0E1B2E" opacity={0.85} />
+
+                  {showLabel && (
+                    <g transform={`translate(0, ${-(r + 19)})`}>
+                      <rect x={-40} y={-14} width={80} height={28} rx={7} fill="white" fillOpacity={0.97} />
+                      <text x={0} y={-2} textAnchor="middle" fontSize={9} fontWeight={700} fill={meta.color}>
+                        {meta.shortName}
+                      </text>
+                      <text x={0} y={9} textAnchor="middle" fontSize={7} fill="#6b7280">
+                        {region.churchCount} churches
+                      </text>
+                    </g>
+                  )}
+                </Marker>
               );
             })}
-          </svg>
-
-          <AnimatePresence>
-            {activeHub && REGION_META[activeHub] && (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 6 }}
-                transition={{ duration: 0.18 }}
-                className="absolute left-1/2 top-2 w-56 -translate-x-1/2 rounded-xl bg-white p-3 text-left shadow-2xl lg:left-auto lg:right-0 lg:translate-x-0"
-              >
-                <p className="text-sm font-bold text-[#13233B]">{activeHub}</p>
-                {regions.find((r) => r.name === activeHub)?.regionalPastor && (
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    {regions.find((r) => r.name === activeHub).regionalPastor}
-                  </p>
-                )}
-                <p className="mt-1 text-xs font-medium" style={{ color: REGION_META[activeHub].color }}>
-                  {regions.find((r) => r.name === activeHub)?.churchCount} churches · tap to view
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          </ComposableMap>
 
           <p className="mt-2 text-center text-[11px] text-white/35 lg:text-left">
-            Stylised outline for orientation, not to scale.
+            {isTouch ? "Tap a beacon to view that region." : "Hover or tap a beacon to view that region."}
           </p>
         </div>
       </div>
