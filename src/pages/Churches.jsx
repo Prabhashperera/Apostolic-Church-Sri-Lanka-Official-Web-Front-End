@@ -74,7 +74,13 @@ function hubRadius(count) {
 // ComposableMap below.
 const MAP_WIDTH = 280;
 const MAP_HEIGHT = 420;
-const MAP_PADDING = 14;
+const MAP_SIDE_PADDING = 14;
+// Jaffna's marker sits near the top of the island, and its label is drawn
+// above the marker (like the others). With even padding on all sides, that
+// label's top edge landed above y=0 — outside the visible viewBox — so it
+// got clipped in half. Extra padding here on the top edge only pushes the
+// whole island down just enough to leave clearance for that label.
+const MAP_TOP_PADDING = 46;
 
 // Rather than guessing a `scale`/`center` for geoMercator (easy to get
 // wrong by 2-3x, which pushes the whole island outside the visible
@@ -91,8 +97,8 @@ const MAP_PADDING = 14;
 // crashes when <Marker> tries to destructure the result as [x, y].
 const sriLankaProjection = geoMercator().fitExtent(
   [
-    [MAP_PADDING, MAP_PADDING],
-    [MAP_WIDTH - MAP_PADDING, MAP_HEIGHT - MAP_PADDING],
+    [MAP_SIDE_PADDING, MAP_TOP_PADDING],
+    [MAP_WIDTH - MAP_SIDE_PADDING, MAP_HEIGHT - MAP_SIDE_PADDING],
   ],
   sriLankaGeo
 );
